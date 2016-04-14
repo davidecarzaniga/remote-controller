@@ -296,7 +296,7 @@ module.exports = MainView;
 var React = require('react');
 var SockJS = require('sockjs-client');
 
-var sock = new SockJS('http://localhost/echo');
+var sock = new SockJS('http://127.0.0.1:9999/echo');
 
 var RemoteView = React.createClass({
   displayName: 'RemoteView',

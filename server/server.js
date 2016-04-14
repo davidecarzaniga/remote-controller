@@ -4,6 +4,7 @@ var sockjs = require('sockjs');
 var echo = sockjs.createServer({ sockjs_url: 'http://cdn.jsdelivr.net/sockjs/1.0.1/sockjs.min.js' });
 echo.on('connection', function(conn) {
     conn.on('data', function(message) {
+        console.log("arrived data", message);
         conn.write(message);
     });
     conn.on('close', function() {});
