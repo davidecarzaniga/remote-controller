@@ -1,5 +1,3 @@
-var React = require('react');
-var ReactDOM = require('react-dom');
-var MainView = require('./views/mainview.js');
+var Router = require('./router.js');
 
-ReactDOM.render(<MainView />, document.getElementById('main'));
+Router.initialize();

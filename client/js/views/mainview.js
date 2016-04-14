@@ -30,7 +30,7 @@ var MainView = React.createClass({
   /**
    * Start listening to dispatcher events
    */
-  startListeners: function(){
+  stopListeners: function(){
     Dispatcher.off("next", this.next);
     Dispatcher.off("prev", this.prev);
     Dispatcher.off("first", this.first);
@@ -74,11 +74,21 @@ var MainView = React.createClass({
     });
   },
 
+  /**
+   * Gives the client code to use in the Remote page.
+   * In theory this should be handled by the server, this is just a placeholder.
+   * @return {String} The code
+   */
+  getClientCode: function(){
+    return Date.now().toString();
+  },
+
   render: function(){
     return (
       <div>
         <h1>VIEWING PAGE {this.state.currentPage}</h1>
         <p>{textPages[this.state.currentPage]}</p>
+        <h3>CODE: {this.getClientCode()}</h3>
       </div>
     );
   }
