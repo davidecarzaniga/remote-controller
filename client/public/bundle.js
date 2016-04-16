@@ -117,8 +117,8 @@ var ReactDOM = require('react-dom');
 var RemoteView = require('../views/remoteView.js');
 
 var RemoteController = {
-  init: function () {
-    ReactDOM.render(React.createElement(RemoteView, null), document.getElementById('main'));
+  init: function (token) {
+    ReactDOM.render(React.createElement(RemoteView, { token: token }), document.getElementById('main'));
   }
 };
 
@@ -141,10 +141,11 @@ var RemoteController = require('./controllers/remoteController.js');
 var Router = Backbone.Router.extend({
   routes: {
     "remote": "remoteController",
+    "remote/:token": "remoteController",
     "*path": "defaultController"
   },
-  remoteController: function () {
-    RemoteController.init();
+  remoteController: function (token) {
+    RemoteController.init(token);
   },
   defaultController: function () {
     DefaultController.init();
@@ -179,7 +180,11 @@ module.exports = pages;
 },{}],8:[function(require,module,exports){
 var React = require('react');
 var Dispatcher = require('../dispatcher.js');
+var SockJS = require('sockjs-client');
+
 var textPages = require('../utils/fake_textpages.js');
+
+var fakeCode = Date.now().toString();
 
 var MainView = React.createClass({
   displayName: 'MainView',
@@ -192,6 +197,23 @@ var MainView = React.createClass({
 
   componentDidMount: function () {
     this.startListeners();
+
+    var sock = new SockJS('http://127.0.0.1:9999/echo');
+    var code = this.getClientCode();
+
+    sock.onopen = function () {
+      var message = {
+        action: 'clientStart',
+        token: code
+      };
+      sock.send(JSON.stringify(message));
+
+      sock.onmessage = function (message) {
+        var command = message.data;
+        console.info("incoming command", command);
+        Dispatcher.trigger(command);
+      };
+    }.bind(this);
   },
 
   componentWillUnmount: function () {
@@ -243,6 +265,7 @@ var MainView = React.createClass({
    * @param  {Number} page The page index to activate
    */
   goToPage: function (page) {
+    console.info("trying to get page", page);
     if (page < 0) {
       page = 0;
     }
@@ -251,7 +274,7 @@ var MainView = React.createClass({
     }
 
     this.setState({
-      currrentPage: page
+      currentPage: page
     });
   },
 
@@ -261,7 +284,7 @@ var MainView = React.createClass({
    * @return {String} The code
    */
   getClientCode: function () {
-    return Date.now().toString();
+    return fakeCode;
   },
 
   render: function () {
@@ -292,80 +315,136 @@ var MainView = React.createClass({
 
 module.exports = MainView;
 
-},{"../dispatcher.js":5,"../utils/fake_textpages.js":7,"react":176}],9:[function(require,module,exports){
+},{"../dispatcher.js":5,"../utils/fake_textpages.js":7,"react":176,"sockjs-client":177}],9:[function(require,module,exports){
 var React = require('react');
 var SockJS = require('sockjs-client');
-
-var sock = new SockJS('http://127.0.0.1:9999/echo');
+var _ = require('underscore');
 
 var RemoteView = React.createClass({
   displayName: 'RemoteView',
 
-  first: function () {
-    sock.send('first');
+  getInitialState: function () {
+    return {
+      status: "waiting" /** @type {String} The connection status: waiting|connected|closed */
+    };
   },
-  last: function () {
-    sock.send('last');
+  getDefaultProps: function () {
+    return {
+      token: null
+    };
   },
-  prev: function () {
-    sock.send('prev');
+  sock: null,
+  componentDidMount: function () {
+    var sock = new SockJS('http://127.0.0.1:9999/echo');
+    var token = this.props.token;
+
+    sock.onopen = function () {
+      this.setState({
+        status: "connected"
+      });
+    }.bind(this);
+
+    this.sock = sock;
   },
-  next: function () {
-    sock.send('next');
+
+  /**
+   * Sends a command to the socket
+   * @param  {String} command The string representing the issued command 
+   */
+  sendCommand: function (command) {
+    var sock = this.sock;
+    if (_.isNull(sock) === false) {
+      var message = {
+        action: "remoteCommand",
+        command: command,
+        token: this.props.token
+      };
+      sock.send(JSON.stringify(message));
+    }
   },
+
+  /**
+   * Check if the sock connection is active
+   * @return {Boolean}
+   */
+  sockIsConnected: function () {
+    return this.state.status === "connected";
+  },
+
   render: function () {
-    return React.createElement(
-      'div',
-      null,
-      React.createElement(
+    var content = null;
+    var token = this.props.token;
+    console.info("current token", token);
+    if (_.isNull(token)) {
+      content = React.createElement(
         'h1',
         null,
-        'REMOTE PAGE'
-      ),
-      React.createElement(
-        'p',
-        null,
-        React.createElement(
-          'button',
-          { onClick: this.first },
-          'First'
-        )
-      ),
-      React.createElement(
-        'p',
-        null,
-        React.createElement(
-          'button',
-          { onClick: this.prev },
-          'Prev'
-        )
-      ),
-      React.createElement(
-        'p',
-        null,
-        React.createElement(
-          'button',
-          { onClick: this.next },
-          'Next'
-        )
-      ),
-      React.createElement(
-        'p',
-        null,
-        React.createElement(
-          'button',
-          { onClick: this.last },
-          'Last'
-        )
-      )
-    );
+        'Please, use a valid token'
+      );
+    } else {
+      if (this.sockIsConnected()) {
+        content = React.createElement(
+          'div',
+          null,
+          React.createElement(
+            'h1',
+            null,
+            'REMOTE PAGE'
+          ),
+          React.createElement(
+            'p',
+            null,
+            React.createElement(
+              'button',
+              { onClick: this.sendCommand.bind(this, 'first') },
+              'First'
+            )
+          ),
+          React.createElement(
+            'p',
+            null,
+            React.createElement(
+              'button',
+              { onClick: this.sendCommand.bind(this, 'prev') },
+              'Prev'
+            )
+          ),
+          React.createElement(
+            'p',
+            null,
+            React.createElement(
+              'button',
+              { onClick: this.sendCommand.bind(this, 'next') },
+              'Next'
+            )
+          ),
+          React.createElement(
+            'p',
+            null,
+            React.createElement(
+              'button',
+              { onClick: this.sendCommand.bind(this, 'last') },
+              'Last'
+            )
+          )
+        );
+      } else {
+        content = React.createElement(
+          'h1',
+          null,
+          'No socket connection'
+        );
+      }
+    }
+
+    return content;
   }
 
 });
 
 module.exports = RemoteView;
 
-},{"react":176,"sockjs-client":177}],10:[function(require,module,exports){
+},{"react":176,"sockjs-client":177,"underscore":239}],10:[function(require,module,exports){
 (function (global){
 //     Backbone.js 1.3.3
 

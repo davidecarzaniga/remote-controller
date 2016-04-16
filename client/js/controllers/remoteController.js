@@ -4,8 +4,8 @@ var ReactDOM = require('react-dom');
 var RemoteView = require('../views/remoteView.js');
 
 var RemoteController = {
-  init: function(){
-    ReactDOM.render(<RemoteView />, document.getElementById('main'));
+  init: function(token){
+    ReactDOM.render(<RemoteView token={token} />, document.getElementById('main'));
   }
 };
 

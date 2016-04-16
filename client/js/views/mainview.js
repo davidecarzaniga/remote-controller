@@ -1,6 +1,10 @@
 var React = require('react');
 var Dispatcher = require('../dispatcher.js');
-var textPages = require('../utils/fake_textpages.js')
+var SockJS = require('sockjs-client');
+
+var textPages = require('../utils/fake_textpages.js');
+
+var fakeCode = Date.now().toString();
 
 var MainView = React.createClass({
   getInitialState: function(){
@@ -11,6 +15,24 @@ var MainView = React.createClass({
   
   componentDidMount: function(){
     this.startListeners();
+
+    var sock = new SockJS('http://127.0.0.1:9999/echo');
+    var code = this.getClientCode();
+
+    sock.onopen = function() {
+      var message = {
+        action: 'clientStart',
+        token: code
+      };
+      sock.send(JSON.stringify(message));
+
+      sock.onmessage = function(message) {
+        var command = message.data;
+        console.info("incoming command", command);
+        Dispatcher.trigger(command);
+      }
+    }.bind(this);
+
   },
   
   componentWillUnmount: function(){
@@ -62,6 +84,7 @@ var MainView = React.createClass({
    * @param  {Number} page The page index to activate
    */
   goToPage: function(page){
+    console.info("trying to get page", page);
     if(page < 0){
       page = 0;
     }
@@ -70,7 +93,7 @@ var MainView = React.createClass({
     }
 
     this.setState({
-      currrentPage: page
+      currentPage: page
     });
   },
 
@@ -80,7 +103,7 @@ var MainView = React.createClass({
    * @return {String} The code
    */
   getClientCode: function(){
-    return Date.now().toString();
+    return fakeCode;
   },
 
   render: function(){

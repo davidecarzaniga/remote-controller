@@ -7,10 +7,11 @@ var RemoteController = require('./controllers/remoteController.js');
 var Router = Backbone.Router.extend({
   routes: {
     "remote": "remoteController",
+    "remote/:token": "remoteController",
     "*path": "defaultController"
   },
-  remoteController: function(){
-    RemoteController.init();
+  remoteController: function(token){
+    RemoteController.init(token);
   },
   defaultController: function(){
     DefaultController.init()

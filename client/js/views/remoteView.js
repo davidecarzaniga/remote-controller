@@ -1,31 +1,80 @@
 var React = require('react');
 var SockJS = require('sockjs-client');
-
-var sock = new SockJS('http://127.0.0.1:9999/echo');
+var _ = require('underscore');
 
 var RemoteView = React.createClass({
-  first: function(){
-    sock.send('first');
+  getInitialState: function(){
+    return {
+      status: "waiting" /** @type {String} The connection status: waiting|connected|closed */
+    };
   },
-  last: function(){
-    sock.send('last');
+  getDefaultProps: function(){
+    return {
+      token: null
+    };
   },
-  prev: function(){
-    sock.send('prev');
+  sock: null,
+  componentDidMount: function(){
+    var sock = new SockJS('http://127.0.0.1:9999/echo');
+    var token = this.props.token;
+    
+    sock.onopen = function() {
+      this.setState({
+        status: "connected"
+      });
+    }.bind(this);
+
+    this.sock = sock;
   },
-  next: function(){
-    sock.send('next');
+
+  /**
+   * Sends a command to the socket
+   * @param  {String} command The string representing the issued command 
+   */
+  sendCommand: function(command){
+    var sock = this.sock;
+    if(_.isNull(sock) === false){
+      var message = {
+        action: "remoteCommand",
+        command: command,
+        token: this.props.token
+      }
+      sock.send(JSON.stringify(message));
+    }
   },
+
+  /**
+   * Check if the sock connection is active
+   * @return {Boolean}
+   */
+  sockIsConnected: function(){
+    return this.state.status === "connected";
+  },
+
   render: function(){
-    return (
-      <div>
-        <h1>REMOTE PAGE</h1>
-        <p><button onClick={this.first}>First</button></p>
-        <p><button onClick={this.prev}>Prev</button></p>
-        <p><button onClick={this.next}>Next</button></p>
-        <p><button onClick={this.last}>Last</button></p>
-      </div>
-    );
+    var content = null;
+    var token = this.props.token;
+    console.info("current token", token);
+    if(_.isNull(token)){
+      content = <h1>Please, use a valid token</h1>;
+    }else{
+      if(this.sockIsConnected()){
+        content = (
+          <div>
+            <h1>REMOTE PAGE</h1>
+            <p><button onClick={this.sendCommand.bind(this, 'first')}>First</button></p>
+            <p><button onClick={this.sendCommand.bind(this, 'prev')}>Prev</button></p>
+            <p><button onClick={this.sendCommand.bind(this, 'next')}>Next</button></p>
+            <p><button onClick={this.sendCommand.bind(this, 'last')}>Last</button></p>
+          </div>
+        );
+      }else{
+        content = <h1>No socket connection</h1>;
+      }
+      
+    }
+
+    return content;
   }
 
 });
