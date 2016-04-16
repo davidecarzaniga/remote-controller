@@ -1,6 +1,7 @@
 var React = require('react');
 var Dispatcher = require('../dispatcher.js');
 var SockJS = require('sockjs-client');
+var Setup = require('../setup.js');
 
 var textPages = require('../utils/fake_textpages.js');
 
@@ -16,7 +17,7 @@ var MainView = React.createClass({
   componentDidMount: function(){
     this.startListeners();
 
-    var sock = new SockJS('http://127.0.0.1:9999/echo');
+    var sock = new SockJS(Setup.realtimeUrl);
     var code = this.getClientCode();
 
     sock.onopen = function() {
@@ -109,7 +110,7 @@ var MainView = React.createClass({
   render: function(){
     return (
       <div>
-        <h1>VIEWING PAGE {this.state.currentPage}</h1>
+        <h1>VIEWING PAGE {1 + this.state.currentPage} / {textPages.length}</h1>
         <p>{textPages[this.state.currentPage]}</p>
         <h3>CODE: {this.getClientCode()}</h3>
       </div>

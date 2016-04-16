@@ -12,12 +12,16 @@ echo.on('connection', function(conn) {
     message = JSON.parse(message);
     //conn.write(message);
     
+    /** handle connection from standard page */
     if(message.action === "clientStart" && _.isUndefined(message.token) === false){
-      /** init new client */
+      /**
+       * Init new client. Add current connection to clients list (with token)
+       */
       console.log("new client", message.token);
       clients[message.token] = conn;
     }
 
+    /** handle connection from remote page */
     if(message.action === "remoteCommand" && _.isUndefined(message.token) === false && _.isUndefined(message.command) === false){
       /** send command from remote to related client */
       var clientConn = clients[message.token];

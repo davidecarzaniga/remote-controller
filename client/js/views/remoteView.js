@@ -1,5 +1,6 @@
 var React = require('react');
 var SockJS = require('sockjs-client');
+var Setup = require('../setup.js');
 var _ = require('underscore');
 
 var RemoteView = React.createClass({
@@ -15,7 +16,7 @@ var RemoteView = React.createClass({
   },
   sock: null,
   componentDidMount: function(){
-    var sock = new SockJS('http://127.0.0.1:9999/echo');
+    var sock = new SockJS(Setup.realtimeUrl);
     var token = this.props.token;
     
     sock.onopen = function() {
